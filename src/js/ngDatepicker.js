@@ -1,13 +1,13 @@
 angular.module('jkuri.datepicker', [])
 
-.directive('ngDatepicker', ['$timeout', function($timeout) {
+.directive('ngDatepicker', ['$document', function($document) {
 	'use strict';
 
 	var setScopeValues = function (scope, attrs) {
 		scope.format = attrs.format || 'YYYY-MM-DD';
 		scope.viewFormat = attrs.viewFormat || 'Do MMMM YYYY';
 		scope.locale = attrs.locale || 'en';
-		scope.firstWeekDaySunday = scope.$eval(attrs.firstWeekDaySunday) || false; 
+		scope.firstWeekDaySunday = scope.$eval(attrs.firstWeekDaySunday) || false;
 		scope.placeholder = attrs.placeholder || '';
 	};
 
@@ -32,13 +32,12 @@ angular.module('jkuri.datepicker', [])
 					month = date.month(),
 					year = date.year(),
 					n = 1;
-			
+
 				var firstWeekDay = scope.firstWeekDaySunday === true ? date.set('date', 2).day() : date.set('date', 1).day();
 				if (firstWeekDay !== 1) {
 					n -= firstWeekDay - 1;
 				}
 
-				//Code to fix date issue
 				if(n==2)
 					n = -5;
 
@@ -63,6 +62,20 @@ angular.module('jkuri.datepicker', [])
 			};
 
 			generateDayNames();
+
+			scope.keypressed = function(ev) {
+				if (ev.keyCode == 13) { //Enter
+					var d = moment(scope.viewValue, scope.viewFormat)
+					ngModel.$setViewValue(d.format(scope.format));
+					scope.viewValue = d.format(scope.viewFormat);
+					scope.closeCalendar();
+				}
+				else if (ev.keyCode == 27) { //ESC
+					var d = moment(ngModel.$modelValue);
+					scope.viewValue = d.format(scope.viewFormat);
+					scope.closeCalendar();
+				}
+			}
 
 			scope.showCalendar = function () {
 				scope.calendarOpened = true;
@@ -101,42 +114,55 @@ angular.module('jkuri.datepicker', [])
 				scope.closeCalendar();
 			};
 
-            scope.blurEventHandler = function() {
-                var pickerBox = element[0].querySelector('.ng-datepicker'),
-                    input = element[0].querySelector('.ng-datepicker-input');
-                $timeout( function(){
-					var activeElement = document.activeElement,
-						datepickerElementActive = activeElement.isEqualNode(input) || activeElement.isEqualNode(pickerBox);
-					return datepickerElementActive ||  scope.closeCalendar()
-            	});
-            };
+			// if clicked outside of calendar
+			var classList = ['ng-datepicker', 'ng-datepicker-input'];
+            if (attrs.id !== undefined) classList.push(attrs.id);
+			$document.on('click', function (e) {
+				if (!scope.calendarOpened) return;
 
-            scope.$on('blurEvent', scope.blurEventHandler);
+				var i = 0,
+					element;
 
-            scope.blurHandler = function() {
-                scope.$emit('blurEvent');
-            };
+				if (!e.target) return;
+
+				for (element = e.target; element; element = element.parentNode) {
+					var id = element.id;
+					var classNames = element.className;
+
+					if (id !== undefined) {
+						for (i = 0; i < classList.length; i += 1) {
+							if (id.indexOf(classList[i]) > -1 || classNames.indexOf(classList[i]) > -1) {
+								return;
+							}
+						}
+					}
+				}
+				var d = moment(scope.viewValue, scope.viewFormat)
+				ngModel.$setViewValue(d.format(scope.format));
+				scope.viewValue = d.format(scope.viewFormat);
+				scope.closeCalendar();
+				scope.$apply();
+			});
 
 			ngModel.$render = function () {
 				var newValue = ngModel.$viewValue;
 				if (newValue !== undefined) {
-					scope.viewValue = moment(newValue).format(scope.viewFormat);
+					scope.viewValue = moment(newValue).format(attrs.viewFormat);
 					scope.dateValue = newValue;
 				}
 			};
+
 		},
-		template: 
-		'<div>' +
-		'	<input id="datepickerInput-{{$id}}" type="text" tabindex="1" ng-focus="showCalendar()" ng-value="viewValue" ng-blur="blurHandler()" class="ng-datepicker-input" placeholder="{{ placeholder }}">' +
-		'</div>' +
-		'<div id="datepickerBox-{{$id}}" class="ng-datepicker" tabindex="1" ng-show="calendarOpened" ng-blur="blurHandler()" >' +
+		template:
+		'<div><input type="text" ng-focus="showCalendar()" ng-keydown="keypressed($event)" ng-model="viewValue" class="ng-datepicker-input" placeholder="{{ placeholder }}"></div>' +
+		'<div class="ng-datepicker" ng-show="calendarOpened">' +
 		'  <div class="controls">' +
 		'    <div class="left">' +
 		'      <i class="fa fa-backward prev-year-btn" ng-click="prevYear()"></i>' +
 		'      <i class="fa fa-angle-left prev-month-btn" ng-click="prevMonth()"></i>' +
 		'    </div>' +
 		'    <span class="date" ng-bind="dateValue"></span>' +
-		'    <div class="right">' + 
+		'    <div class="right">' +
 		'      <i class="fa fa-angle-right next-month-btn" ng-click="nextMonth()"></i>' +
 		'      <i class="fa fa-forward next-year-btn" ng-click="nextYear()"></i>' +
 		'    </div>' +
@@ -155,4 +181,3 @@ angular.module('jkuri.datepicker', [])
 	};
 
 }]);
-
