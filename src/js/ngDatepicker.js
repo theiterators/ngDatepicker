@@ -15,8 +15,10 @@ angular.module('jkuri.datepicker', [])
         link: function (scope, element, attrs, ngModel) {
             setScopeValues(scope, attrs);
             scope.calendarOpened = false;
+            scope.error = false;
             scope.days = [];
             scope.dayNames = [];
+            scope.id = Math.floor((Math.random()*68789)+1);
             scope.viewValue = null;
             scope.dateValue = null;
             moment.locale(scope.locale);
@@ -52,17 +54,38 @@ angular.module('jkuri.datepicker', [])
             generateDayNames();
             scope.keypressed = function(ev) {
                 if (ev.keyCode == 13) { //Enter
+                    
                     var d = !scope.viewValue ? null : moment(scope.viewValue, scope.viewFormat);
-                    ngModel.$setViewValue(d.format(scope.format));
-                    scope.viewValue = d.format(scope.viewFormat);
+                    if(d != null) {
+                        ngModel.$setViewValue(d.format(scope.format));
+                        scope.viewValue = d.format(scope.viewFormat);
+                        if("Invalid date" === d.format(scope.viewFormat)) {
+                            scope.error = true;
+                        }
+                        else {scope.error = false;}
+                    }
+    
+                    document.getElementById(scope.id).blur();
                     scope.closeCalendar();
                 }
                 else if (ev.keyCode == 27) { //ESC
                     var d = moment(ngModel.$modelValue);
                     scope.viewValue = d.format(scope.viewFormat);
                     scope.closeCalendar();
+                    scope.error = false;
                 }
             }
+            scope.onBlur = function() { // on Blur (mouse leave)
+                if(scope.viewValue != null) {
+                    var d = moment(scope.viewValue, scope.viewFormat);
+                    ngModel.$setViewValue(d.format(scope.format));
+                    scope.viewValue = d.format(scope.viewFormat);
+                    if("Invalid date" === d.format(scope.viewFormat)) {
+                          scope.error = true;
+                    }
+                    else {scope.error = false;}
+                }
+            };
             scope.showCalendar = function () {
                 scope.calendarOpened = true;
                 generateCalendar(date);
@@ -90,6 +113,7 @@ angular.module('jkuri.datepicker', [])
                 event.preventDefault();
                 var selectedDate = moment(date.day + '.' + date.month + '.' + date.year, 'DD.MM.YYYY');
                 ngModel.$setViewValue(selectedDate.format(scope.format));
+                scope.error = false;
                 scope.viewValue = selectedDate.format(scope.viewFormat);
                 scope.closeCalendar();
             };
@@ -127,7 +151,7 @@ angular.module('jkuri.datepicker', [])
             };
         },
         template:
-        '<div><input type="text" ng-focus="showCalendar()" ng-keydown="keypressed($event)" ng-model="viewValue" class="ng-datepicker-input" placeholder="{{ placeholder }}"></div>' +
+        '<div><input id="{{id}}" type="text" ng-focus="showCalendar()" ng-keydown="keypressed($event)" ng-class="{isInvalidDate: error}" ng-blur="onBlur()" ng-model="viewValue" class="ng-datepicker-input" placeholder="{{ placeholder }}"></div>' +
         '<div class="ng-datepicker" ng-show="calendarOpened">' +
         '  <div class="controls">' +
         '    <div class="left">' +
