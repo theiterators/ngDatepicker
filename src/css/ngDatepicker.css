@@ -12,6 +12,10 @@
 	padding: 0;
 }
 
+.isInvalidDate {
+	border: red 2px solid;
+}
+
 .ng-datepicker:focus {
 	outline: none;
 }
