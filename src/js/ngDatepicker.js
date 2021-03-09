@@ -8,7 +8,6 @@ angular.module('jkuri.datepicker', [])
         scope.tabIndex = attrs.tabIndex || '1';
         scope.firstWeekDaySunday = scope.$eval(attrs.firstWeekDaySunday) || false;
         scope.placeholder = attrs.placeholder || '';
-        scope.onBlurDisable = false;
     };
     return {
         restrict: 'EA',
